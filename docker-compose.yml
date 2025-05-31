@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      # Company database (purchase_db)
+      - COMPANY_DB_USER=purchase_user
+      - COMPANY_DB_PASSWORD=purchase_password
+      - COMPANY_DB_HOST=company_postgres
+      - COMPANY_DB_PORT=5432
+      - COMPANY_DB_NAME=purchase_db
+      - COMPANY_DB_URL=postgresql+asyncpg://purchase_user:purchase_password@company_postgres:5432/purchase_db
+      
+      # App database (app_db)
+      - APP_DB_USER=app_user
+      - APP_DB_PASSWORD=app_password
+      - APP_DB_HOST=app_postgres
+      - APP_DB_PORT=5432
+      - APP_DB_NAME=app_db
+      - APP_DB_URL=postgresql+asyncpg://app_user:app_password@app_postgres:5432/app_db
+    depends_on:
+      company_postgres:
+        condition: service_healthy
+      app_postgres:
+        condition: service_healthy
+    command: >
+      sh -c "python -m app.db.init_db &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  frontend:
+    build: .
+    command: python frontend/gradio_ui.py
+    ports:
+      - "7860:7860"
+    volumes:
+      - .:/app
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+
+  # Company database (for business data)
+  company_postgres:
+    image: postgres:15
+    ports:
+      - "5432:5432"  # Company database port
+    environment:
+      - POSTGRES_USER=purchase_user
+      - POSTGRES_PASSWORD=purchase_password
+      - POSTGRES_DB=purchase_db
+    volumes:
+      - company_postgres_data:/var/lib/postgresql/data
+      - ./db/init_company.sql:/docker-entrypoint-initdb.d/init_company.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U purchase_user -d purchase_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Application database (for app-specific data)
+  app_postgres:
+    image: postgres:15
+    ports:
+      - "5433:5432"  # App database port (different from company DB)
+    environment:
+      - POSTGRES_USER=app_user
+      - POSTGRES_PASSWORD=app_password
+      - POSTGRES_DB=app_db
+    volumes:
+      - app_postgres_data:/var/lib/postgresql/data
+      - ./db/init_app.sql:/docker-entrypoint-initdb.d/init_app.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d app_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  company_postgres_data:
+  app_postgres_data: 
