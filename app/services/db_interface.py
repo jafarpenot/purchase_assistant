@@ -1,21 +1,22 @@
 import asyncpg
 import os
 from typing import List, Optional
-from ..models.schema import Supplier, PurchaseHistory
+from ..models.schema import Supplier
+from ..config import settings
 
 class DatabaseInterface:
     def __init__(self):
         self.pool: Optional[asyncpg.Pool] = None
 
     async def connect(self):
-        """Create a connection pool to the database."""
+        """Create a connection pool to the company database."""
         if not self.pool:
             self.pool = await asyncpg.create_pool(
-                user=os.getenv("POSTGRES_USER"),
-                password=os.getenv("POSTGRES_PASSWORD"),
-                database=os.getenv("POSTGRES_DB"),
-                host=os.getenv("POSTGRES_HOST"),
-                port=os.getenv("POSTGRES_PORT")
+                user=settings.COMPANY_DB_USER,
+                password=settings.COMPANY_DB_PASSWORD,
+                database=settings.COMPANY_DB_NAME,
+                host=settings.COMPANY_DB_HOST,
+                port=settings.COMPANY_DB_PORT
             )
 
     async def disconnect(self):
@@ -38,18 +39,6 @@ class DatabaseInterface:
                 supplier_id
             )
             return Supplier(**dict(row)) if row else None
-
-    async def get_purchase_history(self, supplier_id: Optional[int] = None) -> List[PurchaseHistory]:
-        """Retrieve purchase history, optionally filtered by supplier."""
-        async with self.pool.acquire() as conn:
-            if supplier_id:
-                rows = await conn.fetch(
-                    "SELECT * FROM purchase_history WHERE supplier_id = $1",
-                    supplier_id
-                )
-            else:
-                rows = await conn.fetch("SELECT * FROM purchase_history")
-            return [PurchaseHistory(**dict(row)) for row in rows]
 
 # Create a singleton instance
 db = DatabaseInterface() 

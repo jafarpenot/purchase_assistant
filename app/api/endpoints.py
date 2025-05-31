@@ -1,9 +1,8 @@
 from fastapi import APIRouter, HTTPException
-from ..models.schema import PurchaseRequest, RecommendationResponse
+from ..models.schema import PurchaseRequest, RecommendationResponse, Supplier
 from ..services.agent import agent
 from ..services.db_interface import db
 from typing import List
-from ..models.schema import Supplier, PurchaseHistory
 
 router = APIRouter()
 
@@ -39,15 +38,5 @@ async def get_supplier(supplier_id: int):
         return supplier
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.get("/purchase-history", response_model=List[PurchaseHistory])
-async def get_purchase_history(supplier_id: int = None):
-    """
-    Get purchase history, optionally filtered by supplier.
-    """
-    try:
-        return await db.get_purchase_history(supplier_id)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) 

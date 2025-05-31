@@ -9,12 +9,12 @@ services:
       - .:/app
     environment:
       # Company database (purchase_db)
-      - COMPANY_DB_USER=purchase_user
-      - COMPANY_DB_PASSWORD=purchase_password
+      - COMPANY_DB_USER=company_user
+      - COMPANY_DB_PASSWORD=company_password
       - COMPANY_DB_HOST=company_postgres
       - COMPANY_DB_PORT=5432
       - COMPANY_DB_NAME=purchase_db
-      - COMPANY_DB_URL=postgresql+asyncpg://purchase_user:purchase_password@company_postgres:5432/purchase_db
+      - COMPANY_DB_URL=postgresql+asyncpg://company_user:company_password@company_postgres:5432/purchase_db
       
       # App database (app_db)
       - APP_DB_USER=app_user
@@ -50,14 +50,14 @@ services:
     ports:
       - "5432:5432"  # Company database port
     environment:
-      - POSTGRES_USER=purchase_user
-      - POSTGRES_PASSWORD=purchase_password
+      - POSTGRES_USER=company_user
+      - POSTGRES_PASSWORD=company_password
       - POSTGRES_DB=purchase_db
     volumes:
       - company_postgres_data:/var/lib/postgresql/data
       - ./db/init_company.sql:/docker-entrypoint-initdb.d/init_company.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U purchase_user -d purchase_db"]
+      test: ["CMD-SHELL", "pg_isready -U company_user -d purchase_db"]
       interval: 5s
       timeout: 5s
       retries: 5

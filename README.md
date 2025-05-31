@@ -6,10 +6,9 @@ A FastAPI-based purchase recommendation system with a Gradio interface for suppl
 
 - FastAPI backend with async PostgreSQL database
 - Gradio web interface for easy interaction
-- Supplier recommendation system (stub implementation)
-- Document loading support (CSV implemented, PDF placeholder)
+- Supplier recommendation system
 - Dockerized deployment with docker-compose
-- RESTful API endpoints for supplier and purchase history management
+- RESTful API endpoints for supplier management
 
 ## Project Structure
 
@@ -17,22 +16,25 @@ A FastAPI-based purchase recommendation system with a Gradio interface for suppl
 purchase_assistant/
 ├── app/
 │   ├── api/
-│   │   └── endpoints.py
+│   │   └── endpoints.py      # API routes
 │   ├── models/
-│   │   └── schema.py
-│   └── services/
-│       ├── agent.py
-│       ├── api_connector.py
-│       ├── db_interface.py
-│       └── document_loader.py
+│   │   └── schema.py        # Pydantic models
+│   ├── services/
+│   │   ├── agent.py         # Recommendation agent
+│   │   └── db_interface.py  # Database operations
+│   ├── db/
+│   │   └── init_db.py       # Database initialization
+│   ├── config.py            # Application settings
+│   └── main.py             # FastAPI application
 ├── frontend/
-│   └── gradio_ui.py
+│   └── gradio_ui.py        # Gradio interface
 ├── db/
-│   └── init.sql
+│   ├── init_company.sql    # Company database schema
+│   └── init_app.sql        # App database schema
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
-└── main.py
+└── README.md
 ```
 
 ## Prerequisites
@@ -63,7 +65,6 @@ docker-compose up --build
 - `POST /api/v1/recommend`: Get supplier recommendations
 - `GET /api/v1/suppliers`: List all suppliers
 - `GET /api/v1/suppliers/{supplier_id}`: Get supplier details
-- `GET /api/v1/purchase-history`: Get purchase history
 
 ## Development
 
@@ -82,7 +83,7 @@ pip install -r requirements.txt
 
 3. Start the FastAPI server:
 ```bash
-uvicorn main:app --reload
+uvicorn app.main:app --reload
 ```
 
 4. Start the Gradio interface:
@@ -92,16 +93,21 @@ python frontend/gradio_ui.py
 
 ## Environment Variables
 
-The following environment variables are used in the application:
+The following environment variables are configured in docker-compose.yml:
 
-- `POSTGRES_USER`: PostgreSQL username
-- `POSTGRES_PASSWORD`: PostgreSQL password
-- `POSTGRES_DB`: PostgreSQL database name
-- `POSTGRES_HOST`: PostgreSQL host
-- `POSTGRES_PORT`: PostgreSQL port
-- `DATABASE_URL`: Full database connection URL
+### Company Database (purchase_db)
+- `COMPANY_DB_USER`: company_user
+- `COMPANY_DB_PASSWORD`: company_password
+- `COMPANY_DB_HOST`: company_postgres
+- `COMPANY_DB_PORT`: 5432
+- `COMPANY_DB_NAME`: purchase_db
 
-These are configured in the docker-compose.yml file.
+### App Database (app_db)
+- `APP_DB_USER`: app_user
+- `APP_DB_PASSWORD`: app_password
+- `APP_DB_HOST`: app_postgres
+- `APP_DB_PORT`: 5432
+- `APP_DB_NAME`: app_db
 
 ## License
 
