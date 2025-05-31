@@ -174,4 +174,24 @@ class RecommendationResponse(BaseModel):
     supplier: Supplier
     confidence_score: float = Field(..., ge=0, le=1)
     reasoning: str
-    alternative_suppliers: List[Supplier] = [] 
+    alternative_suppliers: List[Supplier] = []
+
+class RecentPurchaseHistory(BaseModel):
+    """Schema for recent purchase history of similar items."""
+    description: str
+    category: Optional[str] = None
+    quantity: int
+    unit: Optional[str] = None
+    unit_price: Decimal
+    total_price: Decimal
+    supplier_name: str
+    order_date: datetime
+    status: str
+    model_config = ConfigDict(from_attributes=True)
+
+class RecentPurchaseResponse(BaseModel):
+    """Response schema for recent purchase history endpoint."""
+    similar_purchases: List[RecentPurchaseHistory]
+    total_count: int
+    average_price: Optional[Decimal] = None
+    most_common_supplier: Optional[str] = None 
