@@ -5,7 +5,6 @@ services:
     plan: free
     healthCheckPath: /docs  # Using FastAPI's docs endpoint as health check
     buildCommand: docker build -t purchase-assistant-api .
-    startCommand: /app/start.sh
     envVars:
       - key: PORT
         value: 8000
@@ -33,7 +32,6 @@ services:
     plan: free
     healthCheckPath: /  # Gradio's root path
     buildCommand: docker build -t purchase-assistant-ui .
-    startCommand: /app/start.sh
     envVars:
       - key: API_URL
         value: https://purchase-assistant-api.onrender.com/api/v1  # Points to the API service
