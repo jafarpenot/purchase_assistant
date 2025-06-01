@@ -345,14 +345,14 @@ class PurchaseAgent:
                 }
             ]
         }
-
+        
         Purchase Request Details:
         Description: {description}
         Category: {category}
         Quantity: {quantity}
         Budget: {budget}
         Urgency: {urgency_level}
-
+        
         Important Notes:
         1. ALL fields in the example above are REQUIRED
         2. Use proper JSON types (numbers, strings, arrays, objects)
