@@ -17,7 +17,8 @@ class Settings(BaseSettings):
     COMPANY_DB_HOST: str = "company_postgres"
     COMPANY_DB_PORT: int = 5432  # Container port (not host port)
     COMPANY_DB_NAME: str = "purchase_db"
-    COMPANY_DB_URL: str = "postgresql+asyncpg://company_user:company_password@company_postgres:5432/purchase_db"
+    # Default URL for local development, will be overridden by environment variable in Render
+    COMPANY_DB_URL: str | None = None
 
     # App DB (app_db) connection settings
     # Used by both init_db.py and the backend service
@@ -27,12 +28,21 @@ class Settings(BaseSettings):
     APP_DB_HOST: str = "app_postgres"
     APP_DB_PORT: int = 5432  # Container port (not host port)
     APP_DB_NAME: str = "app_db"
-    APP_DB_URL: str = "postgresql+asyncpg://app_user:app_password@app_postgres:5432/app_db"
+    # Default URL for local development, will be overridden by environment variable in Render
+    APP_DB_URL: str | None = None
 
     # OpenAI API Key - must be set in environment variables or .env file
     OPENAI_API_KEY: str  # No default value, must be provided
 
     class Config:
         env_file = ".env"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Set default URLs only if not provided by environment
+        if not self.COMPANY_DB_URL:
+            self.COMPANY_DB_URL = f"postgresql+asyncpg://{self.COMPANY_DB_USER}:{self.COMPANY_DB_PASSWORD}@{self.COMPANY_DB_HOST}:{self.COMPANY_DB_PORT}/{self.COMPANY_DB_NAME}"
+        if not self.APP_DB_URL:
+            self.APP_DB_URL = f"postgresql+asyncpg://{self.APP_DB_USER}:{self.APP_DB_PASSWORD}@{self.APP_DB_HOST}:{self.APP_DB_PORT}/{self.APP_DB_NAME}"
 
 settings = Settings() 
