@@ -9,10 +9,9 @@ from ..models.schema import RecentPurchaseHistory
 
 class DatabaseInterface:
     def __init__(self):
-        # Create async engine
+        # Create async engine using the full URL from settings
         self.engine = create_async_engine(
-            f"postgresql+asyncpg://{settings.COMPANY_DB_USER}:{settings.COMPANY_DB_PASSWORD}@"
-            f"{settings.COMPANY_DB_HOST}:{settings.COMPANY_DB_PORT}/{settings.COMPANY_DB_NAME}",
+            settings.COMPANY_DB_URL,
             echo=False
         )
         # Create async session factory

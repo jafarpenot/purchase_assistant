@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     COMPANY_DB_HOST: str = "company_postgres"
     COMPANY_DB_PORT: int = 5432  # Container port (not host port)
     COMPANY_DB_NAME: str = "purchase_db"
-    # Default URL for local development, will be overridden by environment variable in Render
+    # In Render, this will be set by the fromDatabase configuration
     COMPANY_DB_URL: str | None = None
 
     # App DB (app_db) connection settings
@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     APP_DB_HOST: str = "app_postgres"
     APP_DB_PORT: int = 5432  # Container port (not host port)
     APP_DB_NAME: str = "app_db"
-    # Default URL for local development, will be overridden by environment variable in Render
+    # In Render, this will be set by the fromDatabase configuration
     APP_DB_URL: str | None = None
 
     # OpenAI API Key - must be set in environment variables or .env file
@@ -53,14 +53,20 @@ APP_DB_URL: {self.APP_DB_URL}
         
         # If we're in Render (indicated by RENDER environment variable)
         if 'RENDER' in os.environ:
-            # For Render, we'll use the database URLs exactly as provided
+            # In Render, we expect COMPANY_DB_URL and APP_DB_URL to be set by fromDatabase
+            if not self.COMPANY_DB_URL or not self.APP_DB_URL:
+                raise ValueError(
+                    "In Render environment, COMPANY_DB_URL and APP_DB_URL must be set by fromDatabase configuration. "
+                    "Please check your render.yaml file."
+                )
+            
             # Just ensure we're using the asyncpg driver
-            if self.COMPANY_DB_URL and not self.COMPANY_DB_URL.startswith('postgresql+asyncpg://'):
+            if not self.COMPANY_DB_URL.startswith('postgresql+asyncpg://'):
                 self.COMPANY_DB_URL = self.COMPANY_DB_URL.replace('postgresql://', 'postgresql+asyncpg://')
-            if self.APP_DB_URL and not self.APP_DB_URL.startswith('postgresql+asyncpg://'):
+            if not self.APP_DB_URL.startswith('postgresql+asyncpg://'):
                 self.APP_DB_URL = self.APP_DB_URL.replace('postgresql://', 'postgresql+asyncpg://')
         else:
-            # For local development, use the default URLs
+            # For local development, construct URLs from individual settings
             if not self.COMPANY_DB_URL:
                 self.COMPANY_DB_URL = f"postgresql+asyncpg://{self.COMPANY_DB_USER}:{self.COMPANY_DB_PASSWORD}@{self.COMPANY_DB_HOST}:{self.COMPANY_DB_PORT}/{self.COMPANY_DB_NAME}"
             if not self.APP_DB_URL:

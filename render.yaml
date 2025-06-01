@@ -15,13 +15,9 @@ services:
       - key: RENDER
         value: "true"
       - key: COMPANY_DB_URL
-        fromDatabase:
-          name: purchase-assistant-company-db
-          property: connectionString
+        value: ${COMPANY_DB_URL}  # Will be set in Render dashboard
       - key: APP_DB_URL
-        fromDatabase:
-          name: purchase-assistant-app-db
-          property: connectionString
+        value: ${APP_DB_URL}  # Will be set in Render dashboard
       - key: OPENAI_API_KEY
         value: ${OPENAI_API_KEY}  # This will be replaced with your actual API key in Render
     autoDeploy: true

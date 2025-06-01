@@ -165,71 +165,202 @@ class PurchaseAgent:
         
         # Create the enhanced prompt template with format instructions
         template = SYSTEM_PROMPT + """
-        Analyze this purchase request and provide a comprehensive analysis:
-        
+        Analyze this purchase request and provide a comprehensive analysis in the following JSON format:
+
+        {
+            "category": "string (main product/service category)",
+            "specifications": ["string (key specification 1)", "string (key specification 2)", ...],
+            "estimated_quantity": number (or null if not specified),
+            "requirements": ["string (requirement 1)", "string (requirement 2)", ...],
+            "confidence_score": number (between 0 and 1),
+            "reasoning_steps": ["string (step 1)", "string (step 2)", ...],
+            "potential_risks": ["string (risk 1)", "string (risk 2)", ...],
+            "suggested_questions": ["string (question 1)", "string (question 2)", ...],
+            "sustainability": {
+                "environmental_impact": number (between 0 and 1),
+                "local_sourcing_score": number (between 0 and 1),
+                "sustainability_certifications": ["string (cert 1)", "string (cert 2)", ...],
+                "carbon_footprint_estimate": number (or null),
+                "sustainable_practices": ["string (practice 1)", "string (practice 2)", ...]
+            },
+            "cost_analysis": {
+                "estimated_unit_cost": number (or null),
+                "total_cost_estimate": number (or null),
+                "cost_confidence": number (between 0 and 1),
+                "cost_breakdown": {"component1": number, "component2": number, ...},
+                "price_trend": "Stable" | "Increasing" | "Decreasing",
+                "market_competition_level": "Low" | "Moderate" | "High"
+            },
+            "risk_assessment": {
+                "supply_chain_risks": ["string (risk 1)", "string (risk 2)", ...],
+                "quality_risks": ["string (risk 1)", "string (risk 2)", ...],
+                "compliance_risks": ["string (risk 1)", "string (risk 2)", ...],
+                "financial_risks": ["string (risk 1)", "string (risk 2)", ...],
+                "risk_severity": {"risk1": "Low" | "Medium" | "High", ...},
+                "mitigation_strategies": {"risk1": "string (strategy)", ...}
+            },
+            "market_analysis": {
+                "market_conditions": "string",
+                "price_stability": "string",
+                "supplier_availability": "string",
+                "market_trends": "string"
+            },
+            "quality_requirements": ["string (requirement 1)", "string (requirement 2)", ...],
+            "alternative_options": [
+                {
+                    "name": "string",
+                    "pros": ["string (pro 1)", "string (pro 2)", ...],
+                    "cons": ["string (con 1)", "string (con 2)", ...],
+                    "estimated_cost": number
+                },
+                ...
+            ]
+        }
+
+        Example output for a notebook purchase:
+        {
+            "category": "Office Supplies",
+            "specifications": [
+                "A4 size (210mm x 297mm)",
+                "80 sheets per notebook",
+                "Lined paper",
+                "Hard cover"
+            ],
+            "estimated_quantity": 3,
+            "requirements": [
+                "Must be acid-free paper",
+                "Must have durable binding",
+                "Must be recyclable"
+            ],
+            "confidence_score": 0.85,
+            "reasoning_steps": [
+                "Analyzed product category and specifications",
+                "Evaluated quantity based on request",
+                "Assessed quality requirements",
+                "Calculated cost estimates"
+            ],
+            "potential_risks": [
+                "Supply chain delays",
+                "Price fluctuations",
+                "Quality variations between suppliers"
+            ],
+            "suggested_questions": [
+                "Preferred paper weight?",
+                "Any specific brand preferences?",
+                "Required delivery timeline?"
+            ],
+            "sustainability": {
+                "environmental_impact": 0.7,
+                "local_sourcing_score": 0.6,
+                "sustainability_certifications": [
+                    "FSC Certified",
+                    "Recycled Paper"
+                ],
+                "carbon_footprint_estimate": 2.5,
+                "sustainable_practices": [
+                    "Recycled materials",
+                    "Eco-friendly packaging"
+                ]
+            },
+            "cost_analysis": {
+                "estimated_unit_cost": 12.99,
+                "total_cost_estimate": 38.97,
+                "cost_confidence": 0.9,
+                "cost_breakdown": {
+                    "materials": 8.50,
+                    "manufacturing": 2.50,
+                    "shipping": 1.99
+                },
+                "price_trend": "Stable",
+                "market_competition_level": "High"
+            },
+            "risk_assessment": {
+                "supply_chain_risks": [
+                    "Potential paper supply delays",
+                    "Shipping disruptions"
+                ],
+                "quality_risks": [
+                    "Paper quality variations",
+                    "Binding durability"
+                ],
+                "compliance_risks": [
+                    "Environmental certification requirements",
+                    "Import regulations"
+                ],
+                "financial_risks": [
+                    "Currency fluctuations",
+                    "Price increases"
+                ],
+                "risk_severity": {
+                    "supply_chain": "Low",
+                    "quality": "Medium",
+                    "compliance": "Low",
+                    "financial": "Low"
+                },
+                "mitigation_strategies": {
+                    "supply_chain": "Order in advance",
+                    "quality": "Request samples",
+                    "compliance": "Verify certifications",
+                    "financial": "Lock in prices"
+                }
+            },
+            "market_analysis": {
+                "market_conditions": "Stable with good supplier availability",
+                "price_stability": "High",
+                "supplier_availability": "Good",
+                "market_trends": "Increasing focus on sustainability"
+            },
+            "quality_requirements": [
+                "Paper must be acid-free",
+                "Binding must be durable",
+                "Cover must be hard and water-resistant",
+                "Must meet FSC certification standards"
+            ],
+            "alternative_options": [
+                {
+                    "name": "Premium Recycled Notebook",
+                    "pros": [
+                        "100% recycled materials",
+                        "Higher quality paper",
+                        "More durable binding"
+                    ],
+                    "cons": [
+                        "Higher cost",
+                        "Limited color options"
+                    ],
+                    "estimated_cost": 15.99
+                },
+                {
+                    "name": "Basic Office Notebook",
+                    "pros": [
+                        "Lower cost",
+                        "Wide availability",
+                        "Standard quality"
+                    ],
+                    "cons": [
+                        "Lower paper quality",
+                        "Less durable binding"
+                    ],
+                    "estimated_cost": 9.99
+                }
+            ]
+        }
+
         Purchase Request Details:
         Description: {description}
         Category: {category}
         Quantity: {quantity}
         Budget: {budget}
         Urgency: {urgency_level}
-        
-        Please provide a detailed analysis covering:
 
-        1. Basic Analysis:
-           - Main product/service category
-           - Key specifications and requirements
-           - Estimated quantity
-           - Specific requirements or constraints
-           - Quality and compliance requirements (REQUIRED: must be a list of strings)
-           - Alternative options (REQUIRED: must be a list of dictionaries, each with 'name', 'pros', 'cons', and 'estimated_cost')
-
-        2. Sustainability Analysis:
-           - Environmental impact assessment (as a number between 0 and 1)
-           - Local sourcing opportunities (as a number between 0 and 1)
-           - Sustainability certifications to look for (as a list of strings)
-           - Estimated carbon footprint (as a number only, without units, representing CO2e)
-           - Sustainable practices to consider (as a list of strings)
-
-        3. Cost Analysis:
-           - Estimated unit cost (as a number)
-           - Total cost estimate (as a number)
-           - Cost breakdown by component (as a dictionary of numbers)
-           - Price trend analysis (as one of: "Stable", "Increasing", "Decreasing")
-           - Market competition assessment (as one of: "Low", "Moderate", "High")
-           - Total cost of ownership (TCO) considerations
-
-        4. Risk Assessment:
-           - Supply chain risks (as a list of strings)
-           - Quality risks (as a list of strings)
-           - Compliance risks (as a list of strings)
-           - Financial risks (as a list of strings)
-           - Risk severity levels (as a dictionary with "Low", "Medium", "High" values)
-           - Mitigation strategies (as a dictionary of strings)
-
-        5. Market Analysis:
-           - Current market conditions (as a dictionary)
-           - Price stability (as a string)
-           - Supplier availability (as a string)
-           - Market trends (as a string)
-
-        6. Decision Support:
-           - Step-by-step reasoning process (as a list of strings)
-           - Confidence score (as a number between 0 and 1)
-           - Suggested questions for clarification (as a list of strings)
-           - Recommendations for next steps
-
-        Important Format Notes:
-        - All numeric values should be numbers, not strings
-        - Do not include units in numeric values
-        - Carbon footprint should be a number representing CO2e
-        - Confidence scores and impact scores should be between 0 and 1
-        - Use proper JSON types (numbers, strings, arrays, objects) as specified
-        - quality_requirements MUST be a list of strings
-        - alternative_options MUST be a list of dictionaries with 'name', 'pros', 'cons', and 'estimated_cost'
-        
-        Think through this systematically and provide detailed reasoning for each aspect.
-        If any information is uncertain, clearly indicate this and suggest what additional information would be helpful.
+        Important Notes:
+        1. ALL fields in the example above are REQUIRED
+        2. Use proper JSON types (numbers, strings, arrays, objects)
+        3. Do not include units in numeric values
+        4. All scores should be between 0 and 1
+        5. quality_requirements MUST be a list of strings
+        6. alternative_options MUST be a list of dictionaries with 'name', 'pros', 'cons', and 'estimated_cost'
+        7. Follow the exact structure shown in the example
         
         {format_instructions}
         """
