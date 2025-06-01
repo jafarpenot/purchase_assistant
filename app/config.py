@@ -47,6 +47,15 @@ class Settings(BaseSettings):
         if not self.APP_DB_URL:
             self.APP_DB_URL = f"postgresql+asyncpg://{self.APP_DB_USER}:{self.APP_DB_PASSWORD}@{self.APP_DB_HOST}:{self.APP_DB_PORT}/{self.APP_DB_NAME}"
         
+        # Debug logging for database URLs
+        print(f"""
+Database Configuration:
+----------------------
+Environment: {'Render' if 'RENDER' in os.environ else 'Local'}
+COMPANY_DB_URL: {self.COMPANY_DB_URL}
+APP_DB_URL: {self.APP_DB_URL}
+""")
+        
         # If we're in Render (indicated by RENDER environment variable)
         if 'RENDER' in os.environ:
             # For Render, we'll use the database URLs as provided
@@ -56,5 +65,13 @@ class Settings(BaseSettings):
                 self.COMPANY_DB_URL = self.COMPANY_DB_URL.replace('postgresql://', 'postgresql+asyncpg://')
             if self.APP_DB_URL and not self.APP_DB_URL.startswith('postgresql+asyncpg://'):
                 self.APP_DB_URL = self.APP_DB_URL.replace('postgresql://', 'postgresql+asyncpg://')
+            
+            # Debug logging after URL modification
+            print(f"""
+Modified Database URLs for Render:
+--------------------------------
+COMPANY_DB_URL: {self.COMPANY_DB_URL}
+APP_DB_URL: {self.APP_DB_URL}
+""")
 
 settings = Settings() 

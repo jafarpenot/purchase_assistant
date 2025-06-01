@@ -181,7 +181,8 @@ class PurchaseAgent:
            - Key specifications and requirements
            - Estimated quantity
            - Specific requirements or constraints
-           - Quality and compliance requirements
+           - Quality and compliance requirements (REQUIRED: must be a list of strings)
+           - Alternative options (REQUIRED: must be a list of dictionaries, each with 'name', 'pros', 'cons', and 'estimated_cost')
 
         2. Sustainability Analysis:
            - Environmental impact assessment (as a number between 0 and 1)
@@ -211,12 +212,10 @@ class PurchaseAgent:
            - Price stability (as a string)
            - Supplier availability (as a string)
            - Market trends (as a string)
-           - Alternative options (as a list of dictionaries)
 
         6. Decision Support:
            - Step-by-step reasoning process (as a list of strings)
            - Confidence score (as a number between 0 and 1)
-           - Alternative options with pros and cons (as a list of dictionaries)
            - Suggested questions for clarification (as a list of strings)
            - Recommendations for next steps
 
@@ -226,6 +225,8 @@ class PurchaseAgent:
         - Carbon footprint should be a number representing CO2e
         - Confidence scores and impact scores should be between 0 and 1
         - Use proper JSON types (numbers, strings, arrays, objects) as specified
+        - quality_requirements MUST be a list of strings
+        - alternative_options MUST be a list of dictionaries with 'name', 'pros', 'cons', and 'estimated_cost'
         
         Think through this systematically and provide detailed reasoning for each aspect.
         If any information is uncertain, clearly indicate this and suggest what additional information would be helpful.
