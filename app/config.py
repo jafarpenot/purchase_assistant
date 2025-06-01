@@ -1,4 +1,6 @@
 from pydantic_settings import BaseSettings
+import os
+from urllib.parse import urlparse
 
 class Settings(BaseSettings):
     # Note: These common DB settings are not used in the current setup
@@ -44,5 +46,15 @@ class Settings(BaseSettings):
             self.COMPANY_DB_URL = f"postgresql+asyncpg://{self.COMPANY_DB_USER}:{self.COMPANY_DB_PASSWORD}@{self.COMPANY_DB_HOST}:{self.COMPANY_DB_PORT}/{self.COMPANY_DB_NAME}"
         if not self.APP_DB_URL:
             self.APP_DB_URL = f"postgresql+asyncpg://{self.APP_DB_USER}:{self.APP_DB_PASSWORD}@{self.APP_DB_HOST}:{self.APP_DB_PORT}/{self.APP_DB_NAME}"
+        
+        # If we're in Render (indicated by RENDER environment variable)
+        if 'RENDER' in os.environ:
+            # For Render, we'll use the database URLs as provided
+            # The database names in the URLs will already include Render's unique identifiers
+            # We just need to ensure we're using the asyncpg driver
+            if self.COMPANY_DB_URL and not self.COMPANY_DB_URL.startswith('postgresql+asyncpg://'):
+                self.COMPANY_DB_URL = self.COMPANY_DB_URL.replace('postgresql://', 'postgresql+asyncpg://')
+            if self.APP_DB_URL and not self.APP_DB_URL.startswith('postgresql+asyncpg://'):
+                self.APP_DB_URL = self.APP_DB_URL.replace('postgresql://', 'postgresql+asyncpg://')
 
 settings = Settings() 
