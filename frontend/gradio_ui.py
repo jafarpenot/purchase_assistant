@@ -151,11 +151,11 @@ def process_purchase_request(
     }
 
 # Create Gradio interface
-with gr.Blocks(title="Purchase Assistant") as interface:
+with gr.Blocks(title="K-Tech Demo - Purchase Assisting Agent") as interface:
     # Logo centered at the top
     gr.Image("frontend/assets/KPMG_logo.jpg", show_label=False, height=100)
     
-    gr.Markdown("# Purchase Assistant")
+    gr.Markdown("# K-Tech Demo - Purchase Assisting Agent")
     gr.Markdown("Enter your purchase requirements to get supplier recommendations and recent purchase history.")
     
     with gr.Row():
@@ -166,7 +166,7 @@ with gr.Blocks(title="Purchase Assistant") as interface:
                 placeholder="Your name..."
             )
             description = gr.Textbox(
-                label="Purchase Description *",
+                label="Purchase Description * (example: notebook, chair etc.)",
                 placeholder="Describe what you need to purchase...",
                 lines=3
             )
