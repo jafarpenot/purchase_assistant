@@ -50,11 +50,4 @@ databases:
   - name: purchase-assistant-app-db
     databaseName: app_db
     user: app_user
-    plan: free
-
-# Define a secret group for shared secrets
-secretGroups:
-  - name: purchase-assistant-secrets
-    secrets:
-      - key: OPENAI_API_KEY
-        generateValue: false  # We'll set this manually in Render 
+    plan: free 
