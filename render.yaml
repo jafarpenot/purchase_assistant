@@ -20,7 +20,7 @@ services:
           name: purchase-assistant-app-db
           property: connectionString
       - key: OPENAI_API_KEY
-        sync: false
+        fromGroup: purchase-assistant-secrets
     autoDeploy: true
 
   - type: web
@@ -38,7 +38,7 @@ services:
       - key: SERVICE_TYPE
         value: "frontend"
       - key: OPENAI_API_KEY
-        sync: false
+        fromGroup: purchase-assistant-secrets
     autoDeploy: true
 
 databases:
@@ -50,4 +50,11 @@ databases:
   - name: purchase-assistant-app-db
     databaseName: app_db
     user: app_user
-    plan: free 
+    plan: free
+
+# Define a secret group for shared secrets
+secretGroups:
+  - name: purchase-assistant-secrets
+    secrets:
+      - key: OPENAI_API_KEY
+        generateValue: false  # We'll set this manually in Render 
