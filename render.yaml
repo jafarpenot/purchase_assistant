@@ -46,8 +46,10 @@ databases:
     databaseName: purchase_db  # Using our preferred name
     user: company_user
     plan: free
+    createOnSync: true  # Create database when syncing Blueprint
 
   - name: purchase-assistant-app-db
     databaseName: app_db  # Using our preferred name
     user: app_user
-    plan: free 
+    plan: free
+    createOnSync: true  # Create database when syncing Blueprint 
