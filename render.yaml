@@ -11,6 +11,16 @@ services:
         value: "1"
       - key: SERVICE_TYPE
         value: "backend"
+      - key: COMPANY_DB_URL
+        fromDatabase:
+          name: purchase-assistant-company-db
+          property: connectionString
+      - key: APP_DB_URL
+        fromDatabase:
+          name: purchase-assistant-app-db
+          property: connectionString
+      - key: OPENAI_API_KEY
+        sync: false
     autoDeploy: true
 
   - type: web
@@ -27,4 +37,17 @@ services:
         value: "1"
       - key: SERVICE_TYPE
         value: "frontend"
-    autoDeploy: true 
+      - key: OPENAI_API_KEY
+        sync: false
+    autoDeploy: true
+
+databases:
+  - name: purchase-assistant-company-db
+    databaseName: purchase_db
+    user: company_user
+    plan: free
+
+  - name: purchase-assistant-app-db
+    databaseName: app_db
+    user: app_user
+    plan: free 

@@ -32,7 +32,13 @@ RUN echo '#!/bin/bash\n\
 if [ "$SERVICE_TYPE" = "frontend" ]; then\n\
     python frontend/gradio_ui.py\n\
 else\n\
-    python -m app.db.init_db && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}\n\
+    if [ -z "$RENDER" ]; then\n\
+        # Local development: initialize databases\n\
+        python -m app.db.init_db && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}\n\
+    else\n\
+        # Render deployment: skip database initialization\n\
+        uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}\n\
+    fi\n\
 fi' > /app/start.sh && chmod +x /app/start.sh
 
 # Default command
