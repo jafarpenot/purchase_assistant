@@ -23,5 +23,5 @@ services:
         value: 7860
       - key: PYTHONUNBUFFERED
         value: "1"
-    command: python frontend/gradio_ui.py
+    startCommand: python frontend/gradio_ui.py
     autoDeploy: true 
