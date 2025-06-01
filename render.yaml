@@ -20,7 +20,7 @@ services:
           name: purchase-assistant-app-db
           property: connectionString
       - key: OPENAI_API_KEY
-        sync: true  # This will sync from your local environment
+        value: ${OPENAI_API_KEY}  # This will be replaced with your actual API key in Render
     autoDeploy: true
 
   - type: web
@@ -38,7 +38,7 @@ services:
       - key: SERVICE_TYPE
         value: "frontend"
       - key: OPENAI_API_KEY
-        sync: true  # This will sync from your local environment
+        value: ${OPENAI_API_KEY}  # This will be replaced with your actual API key in Render
     autoDeploy: true
 
 databases:
