@@ -21,7 +21,7 @@ def get_recommendation(
     urgency_level: str = "Medium"
 ) -> Dict[str, Any]:
     """
-    Call the recommendation API and format the response for display.
+    Get a supplier recommendation from the API.
     """
     try:
         # Prepare request data
@@ -32,55 +32,44 @@ def get_recommendation(
             "category": category if category else None,
             "department": department if department else None,
             "unit": unit if unit else None,
-            "budget": str(budget) if budget else None,  # Convert to string to avoid Decimal serialization
+            "budget": budget,
             "urgency_level": urgency_level
         }
         
         # Make API call
         url = f"{API_URL}/recommend"
         print(f"Making recommendation request to: {url}")  # Debug log
-        print(f"Request data: {json.dumps(request_data)}")  # Debug log
         response = requests.post(url, json=request_data)
-        
-        if response.status_code == 422:
-            error_detail = response.json()
-            print(f"Validation error details: {error_detail}")  # Debug log
-            raise requests.exceptions.RequestException(f"Validation error: {error_detail}")
-            
         response.raise_for_status()
         
-        # Format response for display
+        # Get the response
         result = response.json()
         
-        # Create a formatted markdown string for the reasoning
-        reasoning_md = f"""
-### Analysis Results
+        # Format the markdown output with detailed analysis
+        markdown_output = f"""
+# Supplier Recommendation
 
-**Category:** {result["supplier"]["category"]}  
-**Confidence Score:** {result["confidence_score"]:.2%}
+## Recommended Supplier
+**Name:** {result['supplier']['name']}
+**Category:** {result['supplier']['category']}
+**Rating:** {result['supplier']['rating']}/5.0
+**Confidence Score:** {result['confidence_score']:.0%}
 
-{result["reasoning"]}
+## Alternative Suppliers
+{chr(10).join(f"- {supplier['name']} (Rating: {supplier['rating']}/5.0)" for supplier in result['alternative_suppliers'])}
 
-### Recommended Supplier
-- **Name:** {result["supplier"]["name"]}
-- **Rating:** {result["supplier"]["rating"]}/5.0
-
-### Alternative Suppliers
-{chr(10).join([f"- {s['name']} (Rating: {s['rating']}/5.0)" for s in result["alternative_suppliers"]])}
+## Detailed Analysis
+{result['reasoning']}
 """
         
         return {
-            "markdown": reasoning_md,
-            "json": result  # Keep the raw JSON for reference
+            "markdown": markdown_output,
+            "json": result  # Keep the raw JSON for debugging
         }
     except requests.exceptions.RequestException as e:
-        print(f"Recommendation request failed: {str(e)}")  # Debug log
-        if hasattr(e.response, 'json'):
-            error_detail = e.response.json()
-            print(f"Error details: {error_detail}")  # Debug log
         return {
-            "markdown": f"### Error\nFailed to get recommendation: {str(e)}",
-            "json": {"Error": str(e)}
+            "markdown": f"Error: Failed to get recommendation: {str(e)}",
+            "json": {"error": str(e)}
         }
 
 def get_recent_purchases(description: str, category: str = "") -> Dict[str, Any]:
@@ -213,11 +202,25 @@ with gr.Blocks(title="Purchase Assistant") as interface:
             submit_btn = gr.Button("Get Recommendations & History")
         
         with gr.Column():
-            with gr.Tab("Recommendation"):
-                recommendation_md = gr.Markdown(label="Agent Analysis & Recommendation")
-                recommendation_json = gr.JSON(label="Raw Response", visible=False)  # Hidden but available for debugging
-            with gr.Tab("Recent Purchases"):
-                recent_purchases_output = gr.JSON(label="Recent Purchase History")
+            with gr.Tabs():
+                with gr.Tab("Recommendation"):
+                    recommendation_md = gr.Markdown(label="Agent Analysis & Recommendation")
+                    with gr.Accordion("Raw Response (for debugging)", open=False):
+                        recommendation_json = gr.JSON(label="Raw Response")
+                with gr.Tab("Recent Purchases"):
+                    recent_purchases_output = gr.JSON(label="Recent Purchase History")
+                with gr.Tab("Analysis Details"):
+                    with gr.Accordion("Purchase Analysis", open=True):
+                        analysis_md = gr.Markdown(label="Detailed Purchase Analysis")
+                    with gr.Accordion("Historical Analysis", open=True):
+                        history_md = gr.Markdown(label="Historical Purchase Analysis")
+                    with gr.Accordion("Risk Assessment", open=True):
+                        risk_md = gr.Markdown(label="Risk Analysis")
+                    with gr.Accordion("Supplier Performance", open=True):
+                        supplier_md = gr.Markdown(label="Supplier Performance Analysis")
+                with gr.Tab("Agent Reasoning"):
+                    with gr.Accordion("Live Reasoning Log", open=True):
+                        reasoning_log = gr.Markdown(label="Agent's Step-by-Step Reasoning")
     
     def validate_and_update_outputs(
         description: str,
@@ -228,7 +231,7 @@ with gr.Blocks(title="Purchase Assistant") as interface:
         unit: str,
         budget: float,
         urgency_level: str
-    ) -> tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    ) -> tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any], str, str, str, str, str]:
         # Validate required fields
         if not description.strip():
             raise gr.Error("Purchase Description is required")
@@ -237,16 +240,7 @@ with gr.Blocks(title="Purchase Assistant") as interface:
         if not quantity or quantity < 1:
             raise gr.Error("Quantity must be at least 1")
             
-        result = process_purchase_request(
-            description=description,
-            requester_name=requester_name,
-            quantity=quantity,
-            category=category,
-            department=department,
-            unit=unit,
-            budget=budget,
-            urgency_level=urgency_level
-        )
+        # Get recommendation
         recommendation = get_recommendation(
             description=description,
             requester_name=requester_name,
@@ -257,7 +251,111 @@ with gr.Blocks(title="Purchase Assistant") as interface:
             budget=budget,
             urgency_level=urgency_level
         )
-        return recommendation["markdown"], recommendation["json"], result["Recent Purchases"]
+        
+        # Get recent purchases
+        recent_purchases = get_recent_purchases(description, category)
+        
+        # Extract detailed analysis sections from the recommendation
+        json_data = recommendation["json"]
+        
+        # Format analysis sections
+        analysis_text = f"""
+## Purchase Analysis
+**Category:** {json_data.get('category', 'N/A')}
+**Confidence Score:** {json_data.get('confidence_score', 0):.0%}
+
+### Key Specifications
+{chr(10).join(f"- {spec}" for spec in json_data.get('specifications', []))}
+
+### Requirements
+{chr(10).join(f"- {req}" for req in json_data.get('requirements', []))}
+
+### Sustainability Analysis
+- Environmental Impact: {json_data.get('sustainability', {}).get('environmental_impact', 0):.0%}
+- Local Sourcing Score: {json_data.get('sustainability', {}).get('local_sourcing_score', 0):.0%}
+- Sustainable Practices: {', '.join(json_data.get('sustainability', {}).get('sustainable_practices', []))}
+
+### Cost Analysis
+- Estimated Unit Cost: ${json_data.get('cost_analysis', {}).get('estimated_unit_cost', 'N/A')}
+- Total Cost Estimate: ${json_data.get('cost_analysis', {}).get('total_cost_estimate', 'N/A')}
+- Cost Confidence: {json_data.get('cost_analysis', {}).get('cost_confidence', 0):.0%}
+- Price Trend: {json_data.get('cost_analysis', {}).get('price_trend', 'N/A')}
+"""
+
+        history_text = f"""
+## Historical Analysis
+**Total Similar Purchases:** {json_data.get('total_purchases', 0)}
+**Success Rate:** {json_data.get('success_rate', 0):.0%}
+**Average Delivery Time:** {json_data.get('average_delivery_time', 'N/A')} days
+
+### Price Trends
+- Average Price: ${json_data.get('price_trend', {}).get('average_price', 'N/A')}
+- Price Volatility: {json_data.get('price_trend', {}).get('price_volatility', 0):.0%}
+- Price Trend: {json_data.get('price_trend', {}).get('price_trend', 'N/A')}
+
+### Common Suppliers
+{chr(10).join(f"- {supplier['name']}: {supplier['order_count']} orders, {supplier['success_rate']:.0%} success rate" 
+              for supplier in json_data.get('common_suppliers', []))}
+
+### Historical Recommendations
+{chr(10).join(f"- {rec}" for rec in json_data.get('recommendations', []))}
+"""
+
+        risk_text = f"""
+## Risk Assessment
+### Supply Chain Risks
+{chr(10).join(f"- {risk}" for risk in json_data.get('risk_assessment', {}).get('supply_chain_risks', []))}
+
+### Quality Risks
+{chr(10).join(f"- {risk}" for risk in json_data.get('risk_assessment', {}).get('quality_risks', []))}
+
+### Compliance Risks
+{chr(10).join(f"- {risk}" for risk in json_data.get('risk_assessment', {}).get('compliance_risks', []))}
+
+### Financial Risks
+{chr(10).join(f"- {risk}" for risk in json_data.get('risk_assessment', {}).get('financial_risks', []))}
+
+### Risk Mitigation Strategies
+{chr(10).join(f"- {risk}: {strategy}" for risk, strategy in json_data.get('risk_assessment', {}).get('mitigation_strategies', {}).items())}
+"""
+
+        supplier_text = f"""
+## Supplier Performance Analysis
+### Top Supplier Performance
+**Name:** {json_data.get('supplier', {}).get('name', 'N/A')}
+**Category Match:** {json_data.get('category_match_score', 0):.0%}
+**Rating Score:** {json_data.get('rating_score', 0):.0%}
+**Performance Score:** {json_data.get('performance_score', 0):.0%}
+**Sustainability Score:** {json_data.get('sustainability_score', 0):.0%}
+**Cost Score:** {json_data.get('cost_score', 0):.0%}
+**Delivery Score:** {json_data.get('delivery_score', 0):.0%}
+**Total Score:** {json_data.get('total_score', 0):.0%}
+
+### Performance Reasoning
+{chr(10).join(f"- {reason}" for reason in json_data.get('reasoning', []))}
+
+### Alternative Suppliers
+{chr(10).join(f"- {supplier['name']} (Rating: {supplier['rating']}/5.0)" for supplier in json_data.get('alternative_suppliers', []))}
+"""
+        
+        # Format the reasoning log
+        reasoning_log_text = f"""
+# Agent Reasoning Log
+
+## Step-by-Step Analysis
+{json_data.get('reasoning_log', 'No reasoning log available')}
+"""
+        
+        return (
+            recommendation["markdown"],
+            recommendation["json"],
+            recent_purchases,
+            analysis_text,
+            history_text,
+            risk_text,
+            supplier_text,
+            reasoning_log_text
+        )
     
     submit_btn.click(
         fn=validate_and_update_outputs,
@@ -271,7 +369,16 @@ with gr.Blocks(title="Purchase Assistant") as interface:
             budget,
             urgency_level
         ],
-        outputs=[recommendation_md, recommendation_json, recent_purchases_output]
+        outputs=[
+            recommendation_md,
+            recommendation_json,
+            recent_purchases_output,
+            analysis_md,
+            history_md,
+            risk_md,
+            supplier_md,
+            reasoning_log
+        ]
     )
 
 if __name__ == "__main__":

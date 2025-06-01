@@ -22,29 +22,5 @@ app.add_middleware(
 # Include API routes
 app.include_router(router, prefix="/api/v1")
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database connection on startup."""
-    await db.connect()
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Close database connection on shutdown."""
-    await db.disconnect()
-
-@app.get("/")
-async def root():
-    """Root endpoint returning API information."""
-    return {
-        "name": "Purchase Assistant API",
-        "version": "1.0.0",
-        "status": "operational",
-        "endpoints": {
-            "recommend": "/api/v1/recommend",
-            "suppliers": "/api/v1/suppliers",
-            "purchase_history": "/api/v1/purchase-history"
-        }
-    }
-
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True) 

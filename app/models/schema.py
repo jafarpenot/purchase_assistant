@@ -171,10 +171,12 @@ class UserFeedback(UserFeedbackBase):
 
 # Response schemas
 class RecommendationResponse(BaseModel):
+    """Response model for supplier recommendations"""
     supplier: Supplier
-    confidence_score: float = Field(..., ge=0, le=1)
+    confidence_score: float = Field(ge=0, le=1)
     reasoning: str
-    alternative_suppliers: List[Supplier] = []
+    alternative_suppliers: List[Supplier]
+    reasoning_log: Optional[str] = Field(default=None, description="Detailed reasoning log from the agent")
 
 class RecentPurchaseHistory(BaseModel):
     """Schema for recent purchase history of similar items."""
