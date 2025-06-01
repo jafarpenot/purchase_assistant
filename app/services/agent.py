@@ -184,42 +184,49 @@ class PurchaseAgent:
            - Quality and compliance requirements
 
         2. Sustainability Analysis:
-           - Environmental impact assessment
-           - Local sourcing opportunities
-           - Sustainability certifications to look for
-           - Estimated carbon footprint
-           - Sustainable practices to consider
+           - Environmental impact assessment (as a number between 0 and 1)
+           - Local sourcing opportunities (as a number between 0 and 1)
+           - Sustainability certifications to look for (as a list of strings)
+           - Estimated carbon footprint (as a number only, without units, representing CO2e)
+           - Sustainable practices to consider (as a list of strings)
 
         3. Cost Analysis:
-           - Estimated unit cost
-           - Total cost estimate
-           - Cost breakdown by component
-           - Price trend analysis
-           - Market competition assessment
+           - Estimated unit cost (as a number)
+           - Total cost estimate (as a number)
+           - Cost breakdown by component (as a dictionary of numbers)
+           - Price trend analysis (as one of: "Stable", "Increasing", "Decreasing")
+           - Market competition assessment (as one of: "Low", "Moderate", "High")
            - Total cost of ownership (TCO) considerations
 
         4. Risk Assessment:
-           - Supply chain risks
-           - Quality risks
-           - Compliance risks
-           - Financial risks
-           - Risk severity levels
-           - Mitigation strategies
+           - Supply chain risks (as a list of strings)
+           - Quality risks (as a list of strings)
+           - Compliance risks (as a list of strings)
+           - Financial risks (as a list of strings)
+           - Risk severity levels (as a dictionary with "Low", "Medium", "High" values)
+           - Mitigation strategies (as a dictionary of strings)
 
         5. Market Analysis:
-           - Current market conditions
-           - Price stability
-           - Supplier availability
-           - Market trends
-           - Alternative options
+           - Current market conditions (as a dictionary)
+           - Price stability (as a string)
+           - Supplier availability (as a string)
+           - Market trends (as a string)
+           - Alternative options (as a list of dictionaries)
 
         6. Decision Support:
-           - Step-by-step reasoning process
-           - Confidence score (0-1)
-           - Alternative options with pros and cons
-           - Suggested questions for clarification
+           - Step-by-step reasoning process (as a list of strings)
+           - Confidence score (as a number between 0 and 1)
+           - Alternative options with pros and cons (as a list of dictionaries)
+           - Suggested questions for clarification (as a list of strings)
            - Recommendations for next steps
 
+        Important Format Notes:
+        - All numeric values should be numbers, not strings
+        - Do not include units in numeric values
+        - Carbon footprint should be a number representing CO2e
+        - Confidence scores and impact scores should be between 0 and 1
+        - Use proper JSON types (numbers, strings, arrays, objects) as specified
+        
         Think through this systematically and provide detailed reasoning for each aspect.
         If any information is uncertain, clearly indicate this and suggest what additional information would be helpful.
         
