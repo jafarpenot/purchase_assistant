@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: purchase-assistant
+    name: purchase-assistant-api
     env: docker
     plan: free
     healthCheckPath: /docs  # Using FastAPI's docs endpoint as health check
@@ -9,4 +9,19 @@ services:
         value: 8000
       - key: PYTHONUNBUFFERED
         value: "1"
+    autoDeploy: true
+
+  - type: web
+    name: purchase-assistant-ui
+    env: docker
+    plan: free
+    healthCheckPath: /  # Gradio's root path
+    envVars:
+      - key: API_URL
+        value: https://purchase-assistant-api.onrender.com/api/v1  # Points to the API service
+      - key: PORT
+        value: 7860
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    command: python frontend/gradio_ui.py
     autoDeploy: true 
