@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query, Depends
-from ..models.schema import PurchaseRequest, RecommendationResponse, Supplier, RecentPurchaseResponse
+from ..models.schema import PurchaseRequestCreate, PurchaseRequest, RecommendationResponse, Supplier, RecentPurchaseResponse
 from ..services.agent import agent
 from ..services.db_interface import db
 from typing import List, Optional
@@ -12,13 +12,17 @@ import traceback
 router = APIRouter()
 
 @router.post("/recommend", response_model=RecommendationResponse)
-async def get_recommendation(request: PurchaseRequest):
+async def get_recommendation(request: PurchaseRequestCreate):
     """
     Get a supplier recommendation based on the purchase request.
     """
     try:
+        print(f"Received request: {request.dict()}")  # Debug log
         return await agent.get_recommendation(request)
     except Exception as e:
+        print(f"Error in /recommend endpoint: {str(e)}")  # Debug log
+        if hasattr(e, 'response') and hasattr(e.response, 'json'):
+            print(f"Error details: {e.response.json()}")  # Debug log
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/suppliers", response_model=List[Supplier])
