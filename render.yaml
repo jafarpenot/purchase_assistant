@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: purchase-assistant
+    env: docker
+    plan: free
+    healthCheckPath: /docs  # Using FastAPI's docs endpoint as health check
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    autoDeploy: true 

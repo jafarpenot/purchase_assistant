@@ -24,5 +24,8 @@ COPY . .
 # Verify SQLAlchemy installation
 RUN python -c "import sqlalchemy; print(f'SQLAlchemy version: {sqlalchemy.__version__}')"
 
-# Default command
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"] 
+# Expose the port
+EXPOSE 8000
+
+# Default command - using $PORT for Render compatibility
+CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} 
