@@ -23,6 +23,7 @@ services:
       - APP_DB_PORT=5432
       - APP_DB_NAME=app_db
       - APP_DB_URL=postgresql+asyncpg://app_user:app_password@app_postgres:5432/app_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       company_postgres:
         condition: service_healthy
@@ -41,6 +42,7 @@ services:
       - .:/app
     environment:
       - API_URL=http://backend:8000/api/v1
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       - backend
 

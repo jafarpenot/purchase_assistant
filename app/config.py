@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     APP_DB_NAME: str = "app_db"
     APP_DB_URL: str = "postgresql+asyncpg://app_user:app_password@app_postgres:5432/app_db"
 
+    # OpenAI API Key - must be set in environment variables or .env file
+    OPENAI_API_KEY: str  # No default value, must be provided
+
     class Config:
         env_file = ".env"
 

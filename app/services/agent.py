@@ -8,6 +8,15 @@ from pydantic import BaseModel, Field
 from ..models.schema import PurchaseRequestCreate, RecommendationResponse, Supplier
 from ..config import settings
 
+SYSTEM_PROMPT = """
+You are a procurement assistant. Always follow these rules:
+- Only recommend suppliers with a rating above 4.0.
+- Never exceed the specified budget.
+- Prioritize sustainable and local suppliers.
+- Flag purchases above $10,000 for human approval.
+- Always check for recent similar purchases before making a recommendation.
+"""
+
 class PurchaseAnalysis(BaseModel):
     """Structured output for purchase request analysis"""
     category: str = Field(description="Main product/service category")
@@ -35,7 +44,7 @@ class PurchaseAgent:
         self.output_parser = PydanticOutputParser(pydantic_object=PurchaseAnalysis)
         
         # Create the prompt template with format instructions
-        template = """
+        template = SYSTEM_PROMPT + """
         Analyze this purchase request and provide a detailed analysis:
         Description: {description}
         
