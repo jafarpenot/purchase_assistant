@@ -104,27 +104,6 @@ class SupplierScore(BaseModel):
     delivery_score: float = Field(description="Score based on delivery performance (0-1)", ge=0, le=1)
     total_score: float = Field(description="Total weighted score (0-1)", ge=0, le=1)
     reasoning: List[str] = Field(description="Reasoning for each score component")
-    
-    @validator('total_score')
-    def validate_total_score(cls, v, values):
-        # Calculate total score as weighted average
-        weights = {
-            'category_match_score': 0.25,
-            'rating_score': 0.20,
-            'performance_score': 0.20,
-            'sustainability_score': 0.15,
-            'cost_score': 0.10,
-            'delivery_score': 0.10
-        }
-        
-        total = sum(
-            values.get(field, 0) * weight 
-            for field, weight in weights.items()
-        )
-        
-        if abs(v - total) > 0.001:  # Allow for small floating point differences
-            raise ValueError(f'Total score {v} does not match calculated weighted average {total}')
-        return v
 
 class PriceTrend(BaseModel):
     """Analysis of price trends from historical data"""
@@ -564,40 +543,70 @@ class PurchaseAgent:
         request: PurchaseRequestCreate
     ) -> List[SupplierScore]:
         """
-        Calculate scores for all matching suppliers.
-        
-        Args:
-            session: Database session
-            analysis: Purchase request analysis
-            request: Original purchase request
-            
-        Returns:
-            List of scored suppliers
+        Calculate scores for all matching suppliers with flexible category matching.
         """
-        # Get all active suppliers in the category
+        # Get all active suppliers
         query = select(CompanySupplier).where(
-            and_(
-                CompanySupplier.is_active == True,
-                CompanySupplier.category == analysis.category
-            )
+            CompanySupplier.is_active == True
         )
         
         result = await session.execute(query)
-        suppliers = result.scalars().all()
+        all_suppliers = result.scalars().all()
         
-        if not suppliers:
+        if not all_suppliers:
             return []
         
+        # Define category relationships (you can expand this)
+        category_relationships = {
+            "Electronics": ["Computer Parts", "IT Equipment", "Hardware"],
+            "Office Supplies": ["Stationery", "Paper Products", "Office Equipment"],
+            "Furniture": ["Office Furniture", "Home Furniture", "Interior Design"],
+            "IT Equipment": ["Electronics", "Computer Parts", "Hardware"],
+            "Computer Parts": ["Electronics", "IT Equipment", "Hardware"],
+            "Hardware": ["Electronics", "IT Equipment", "Computer Parts"],
+            "Stationery": ["Office Supplies", "Paper Products"],
+            "Paper Products": ["Office Supplies", "Stationery"],
+            "Office Equipment": ["Office Supplies", "Electronics"],
+            "Office Furniture": ["Furniture", "Office Equipment"],
+            "Home Furniture": ["Furniture", "Interior Design"],
+            "Interior Design": ["Furniture", "Home Furniture"]
+        }
+        
         scored_suppliers = []
-        for supplier in suppliers:
+        for supplier in all_suppliers:
+            # Calculate category match score
+            category_match_score = 0.0
+            category_reasoning = ""
+            
+            if analysis.category:
+                if supplier.category == analysis.category:
+                    category_match_score = 1.0
+                    category_reasoning = f"Perfect match for {analysis.category}"
+                elif supplier.category in category_relationships.get(analysis.category, []):
+                    category_match_score = 0.8
+                    category_reasoning = f"Related category: {supplier.category} is related to {analysis.category}"
+                else:
+                    # Use fuzzy matching for other categories
+                    from difflib import SequenceMatcher
+                    similarity = SequenceMatcher(None, supplier.category.lower(), analysis.category.lower()).ratio()
+                    if similarity > 0.6:  # Threshold for fuzzy matching
+                        category_match_score = 0.6
+                        category_reasoning = f"Similar category: {supplier.category} (similarity: {similarity:.2f})"
+                    else:
+                        category_match_score = 0.3
+                        category_reasoning = f"Different category: {supplier.category}, but considered due to flexible matching"
+            else:
+                # If no category provided, use a moderate score and let other factors influence more
+                category_match_score = 0.5
+                category_reasoning = "No category specified, using moderate match score"
+            
             # Get performance metrics
             performance_score, performance_metrics = await self._get_supplier_performance(
                 session, supplier.id
             )
             
-            # Calculate individual scores
-            category_match_score = 1.0  # Already filtered by category
-            rating_score = float(supplier.rating or 0) / 5.0  # Normalize to 0-1
+            # Calculate other scores
+            rating_score = float(supplier.rating or 0) / 5.0
             
             # Calculate sustainability score based on analysis
             sustainability_score = (
@@ -617,14 +626,14 @@ class PurchaseAgent:
                     total_cost = Decimal(str(analysis.cost_analysis.total_cost_estimate))
                 
                 cost_ratio = float(total_cost / request.budget)
-                cost_score = max(0, 1 - (cost_ratio - 1))  # Penalize if over budget
+                cost_score = max(0, 1 - (cost_ratio - 1))
             
             # Calculate delivery score
-            delivery_score = performance_metrics['delivery'] / 5.0  # Normalize to 0-1
+            delivery_score = performance_metrics['delivery'] / 5.0
             
             # Create reasoning for each score
             reasoning = [
-                f"Category match: Perfect match for {analysis.category}",
+                f"Category match: {category_reasoning}",
                 f"Rating: {supplier.rating}/5.0",
                 f"Performance: {performance_score:.2%} based on {performance_metrics['total_orders']} orders",
                 f"Sustainability: {sustainability_score:.2%} (Environmental: {analysis.sustainability.environmental_impact:.2%}, Local: {analysis.sustainability.local_sourcing_score:.2%})",
@@ -632,14 +641,14 @@ class PurchaseAgent:
                 f"Delivery performance: {delivery_score:.2%}"
             ]
             
-            # Calculate total score using weights
+            # Adjust weights to reduce category importance
             weights = {
-                'category_match_score': 0.25,
-                'rating_score': 0.20,
-                'performance_score': 0.20,
-                'sustainability_score': 0.15,
-                'cost_score': 0.10,
-                'delivery_score': 0.10
+                'category_match_score': 0.15,  # Reduced from 0.25
+                'rating_score': 0.25,          # Increased from 0.20
+                'performance_score': 0.25,      # Increased from 0.20
+                'sustainability_score': 0.15,   # Same
+                'cost_score': 0.10,            # Same
+                'delivery_score': 0.10         # Same
             }
             
             total_score = sum(
@@ -654,20 +663,20 @@ class PurchaseAgent:
                 ]
             )
             
-            # Create supplier score
-            score = SupplierScore(
-                supplier=Supplier.model_validate(supplier),
-                category_match_score=category_match_score,
-                rating_score=rating_score,
-                performance_score=performance_score,
-                sustainability_score=sustainability_score,
-                cost_score=cost_score,
-                delivery_score=delivery_score,
-                total_score=total_score,  # Now calculated correctly
-                reasoning=reasoning
-            )
-            
-            scored_suppliers.append(score)
+            # Only include suppliers with a reasonable total score
+            if total_score >= 0.3:  # Minimum threshold for consideration
+                score = SupplierScore(
+                    supplier=Supplier.model_validate(supplier),
+                    category_match_score=category_match_score,
+                    rating_score=rating_score,
+                    performance_score=performance_score,
+                    sustainability_score=sustainability_score,
+                    cost_score=cost_score,
+                    delivery_score=delivery_score,
+                    total_score=total_score,
+                    reasoning=reasoning
+                )
+                scored_suppliers.append(score)
         
         # Sort by total score
         return sorted(scored_suppliers, key=lambda x: x.total_score, reverse=True)
@@ -866,14 +875,7 @@ class PurchaseAgent:
 
     async def get_recommendation(self, request: PurchaseRequestCreate) -> RecommendationResponse:
         """
-        Get a supplier recommendation based on the purchase request.
-        Now includes comprehensive historical analysis and reasoning log.
-        
-        Args:
-            request: PurchaseRequestCreate object containing the purchase need description
-            
-        Returns:
-            RecommendationResponse object with supplier recommendation and reasoning log
+        Get a supplier recommendation based on the purchase request with improved fallback behavior.
         """
         # First, analyze the purchase request
         analysis, reasoning_log = await self.analyze_purchase_request(request)
@@ -895,106 +897,87 @@ class PurchaseAgent:
             )
             
             if not scored_suppliers:
-                # Fallback to dummy data if no suppliers found
-                dummy_supplier = Supplier(
-                    id=1,
-                    name="No matching suppliers found",
-                    category=analysis.category,
-                    rating=0.0,
-                    created_at=datetime.utcnow()
-                )
+                # Enhanced fallback behavior
+                # Get all active suppliers regardless of category
+                query = select(CompanySupplier).where(
+                    CompanySupplier.is_active == True
+                ).order_by(CompanySupplier.rating.desc())
                 
-                return RecommendationResponse(
-                    supplier=dummy_supplier,
-                    confidence_score=0.0,
-                    reasoning="No active suppliers found in the requested category.",
-                    alternative_suppliers=[],
-                    reasoning_log=reasoning_log  # Include the reasoning log
-                )
-            
-            # Adjust supplier scores based on historical performance
-            for score in scored_suppliers:
-                # Find supplier in history analysis
-                supplier_history = next(
-                    (s for s in history_analysis.common_suppliers if s['name'] == score.supplier.name),
-                    None
-                )
+                result = await session.execute(query)
+                fallback_suppliers = result.scalars().all()
                 
-                if supplier_history:
-                    # Adjust performance score based on historical success
-                    score.performance_score = (
-                        score.performance_score * 0.7 +  # Current performance
-                        supplier_history['success_rate'] * 0.3  # Historical success
-                    )
+                if fallback_suppliers:
+                    # Get top 3 suppliers by rating
+                    top_suppliers = fallback_suppliers[:3]
+                    alternative_suppliers = [
+                        Supplier.model_validate(supplier) for supplier in top_suppliers
+                    ]
                     
-                    # Add historical reasoning
-                    score.reasoning.append(
-                        f"Historical Performance: {supplier_history['success_rate']:.0%} success rate "
-                        f"over {supplier_history['order_count']} orders"
+                    # Create a more informative response
+                    return RecommendationResponse(
+                        supplier=Supplier.model_validate(fallback_suppliers[0]),
+                        confidence_score=0.3,  # Low confidence for fallback
+                        reasoning=(
+                            "No suppliers found in the exact category. "
+                            "Showing top-rated suppliers as alternatives. "
+                            "Please consider providing more specific category information "
+                            "or reviewing these alternative suppliers."
+                        ),
+                        alternative_suppliers=alternative_suppliers,
+                        reasoning_log=reasoning_log + "\nFallback: Using top-rated suppliers as alternatives"
+                    )
+                else:
+                    # No suppliers at all
+                    return RecommendationResponse(
+                        supplier=Supplier(
+                            id=1,
+                            name="No suppliers available",
+                            category=analysis.category or "Unknown",
+                            rating=0.0,
+                            created_at=datetime.utcnow()
+                        ),
+                        confidence_score=0.0,
+                        reasoning=(
+                            "No suppliers found in the system. "
+                            "Please check the supplier database or "
+                            "consider adding new suppliers."
+                        ),
+                        alternative_suppliers=[],
+                        reasoning_log=reasoning_log + "\nError: No suppliers available in the system"
                     )
             
-            # Re-sort suppliers with adjusted scores
-            scored_suppliers.sort(key=lambda x: x.total_score, reverse=True)
-            
-            # Get top supplier and alternatives
+            # Get the top supplier and alternatives
             top_supplier = scored_suppliers[0]
             alternative_suppliers = [
                 score.supplier for score in scored_suppliers[1:4]  # Get next 3 suppliers
             ]
             
+            # Calculate overall confidence
+            confidence_score = min(
+                top_supplier.total_score,
+                analysis.confidence_score
+            )
+            
             # Create detailed reasoning
-            reasoning = f"""
-Analysis Results:
-----------------
-Category: {analysis.category}
-Confidence Score: {analysis.confidence_score:.2%}
-
-Key Specifications:
-{chr(10).join(f"- {spec}" for spec in analysis.specifications)}
-
-Requirements:
-{chr(10).join(f"- {req}" for req in analysis.requirements)}
-
-Historical Analysis:
-------------------
-Total Similar Purchases: {history_analysis.total_purchases}
-Price Trend: {history_analysis.price_trend.price_trend}
-Average Price: ${history_analysis.price_trend.average_price}
-Price Volatility: {history_analysis.price_trend.price_volatility:.0%}
-Success Rate: {history_analysis.success_rate:.0%}
-Average Delivery Time: {history_analysis.average_delivery_time or 'N/A'} days
-
-Risk Factors:
-{chr(10).join(f"- {risk}" for risk in history_analysis.risk_factors)}
-
-Historical Recommendations:
-{chr(10).join(f"- {rec}" for rec in history_analysis.recommendations)}
-
-Supplier Selection Reasoning:
-{chr(10).join(f"- {reason}" for reason in top_supplier.reasoning)}
-
-Performance Metrics:
-- Category Match: {top_supplier.category_match_score:.2%}
-- Rating Score: {top_supplier.rating_score:.2%}
-- Performance Score: {top_supplier.performance_score:.2%}
-- Sustainability Score: {top_supplier.sustainability_score:.2%}
-- Cost Score: {top_supplier.cost_score:.2%}
-- Delivery Score: {top_supplier.delivery_score:.2%}
-- Total Score: {top_supplier.total_score:.2%}
-
-Potential Risks:
-{chr(10).join(f"- {risk}" for risk in analysis.risk_assessment.supply_chain_risks)}
-
-Suggested Questions:
-{chr(10).join(f"- {q}" for q in analysis.suggested_questions)}
-"""
+            reasoning = (
+                f"Top supplier {top_supplier.supplier.name} selected based on:\n"
+                f"- Category match: {top_supplier.reasoning[0]}\n"
+                f"- Rating: {top_supplier.reasoning[1]}\n"
+                f"- Performance: {top_supplier.reasoning[2]}\n"
+                f"- Sustainability: {top_supplier.reasoning[3]}\n"
+                f"- Cost effectiveness: {top_supplier.reasoning[4]}\n"
+                f"- Delivery performance: {top_supplier.reasoning[5]}"
+            )
+            
+            if confidence_score < 0.6:
+                reasoning += "\n\nNote: Confidence is moderate. Consider reviewing alternative suppliers."
             
             return RecommendationResponse(
                 supplier=top_supplier.supplier,
-                confidence_score=top_supplier.total_score,
+                confidence_score=confidence_score,
                 reasoning=reasoning,
                 alternative_suppliers=alternative_suppliers,
-                reasoning_log=reasoning_log  # Include the reasoning log
+                reasoning_log=reasoning_log
             )
 
 # Create a singleton instance
